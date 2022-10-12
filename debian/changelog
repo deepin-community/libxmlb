@@ -1,0 +1,97 @@
+libxmlb (0.3.2-1) unstable; urgency=medium
+
+  [ Matthias Klumpp ]
+  * Upload to unstable
+  * New upstream release: 0.3.2
+  * d/copyright: Use secure URL
+  * Update symbols file
+
+  [ Will Thompson ]
+  * debian/control: fix typo
+
+ -- Matthias Klumpp <mak@debian.org>  Sat, 21 Aug 2021 19:05:36 +0200
+
+libxmlb (0.2.1-1) experimental; urgency=medium
+
+  * New upstream release: 0.2.1
+  * Target experimental, as we are in transition freeze and the
+    previous 0.2.0 release was never uploaded and would trigger
+    a transition.
+  * Add gbp.conf
+  * Drop all patches: Applied upstream
+
+ -- Matthias Klumpp <mak@debian.org>  Fri, 22 Jan 2021 18:06:10 +0100
+
+libxmlb (0.2.0-1) unstable; urgency=medium
+
+  * New upstream version.
+  * drop existing patches, now upstream
+  * Backport new patches that fix ABI mistake in 0.2.0
+  * Update packages for soname bump that broke ABI
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Tue, 18 Aug 2020 14:31:01 -0500
+
+libxmlb (0.1.15-2) unstable; urgency=medium
+
+  * Team upload.
+  * Bump debhelper compatibility to 12
+  * debian/control: Bump Standards-Version to 4.5.0 (no further changes)
+  * debian/control: Add libglib2.0-doc to the BD to fix the links between the
+    gtk-doc files
+  * debian/libxmlb-dev.install: Install the .gir file and add the proper
+    dependencies
+  * debian/rules: Run the gir sequence
+  * Ship the installed-tests in new libxmlb-tests package
+  * debian/control: Build gir1.2-xmlb-1.0 on all architectures
+  * d/p/tests-Make-the-build-reproducible.patch: Make the installed tests
+    reproductible
+  * debian/libxmlb1.symbols: Add the Build-Depends-Package field
+  * debian/control: Drop uuid-dev BD, this is not needed since 0.1.14
+  * debian/control: Fix the short description of gir1.2-xmlb-1.0
+    (Closes: #921833)
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 02 Apr 2020 19:39:22 +0200
+
+libxmlb (0.1.15-1) unstable; urgency=medium
+
+  * New upstream version (0.1.15)
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Wed, 04 Mar 2020 11:51:10 -0600
+
+libxmlb (0.1.14-1) unstable; urgency=medium
+
+  * New upstream version (0.1.14)
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Tue, 03 Dec 2019 10:22:05 -0600
+
+libxmlb (0.1.13-2) unstable; urgency=medium
+
+  * Add debian/symbols (Closes: #945204)
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Thu, 21 Nov 2019 13:29:23 -0600
+
+libxmlb (0.1.13-1) unstable; urgency=medium
+
+  * New upstream version (0.1.13)
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Thu, 17 Oct 2019 06:31:23 -0500
+
+libxmlb (0.1.8-1) unstable; urgency=medium
+
+  * New upstream version (0.1.8)
+  * Drop all patches: upstream
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Tue, 26 Mar 2019 15:45:12 -0500
+
+libxmlb (0.1.6-2) unstable; urgency=medium
+
+  * Backport two patches that should fix compilation on some Debian port
+    architectures.
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Fri, 08 Feb 2019 12:24:39 -0600
+
+libxmlb (0.1.6-1) unstable; urgency=medium
+
+  * Initial release. Closes: #920777
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Mon, 28 Jan 2019 19:40:37 -0600
