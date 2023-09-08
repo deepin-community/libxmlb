@@ -1,3 +1,48 @@
+libxmlb (0.3.10-2) unstable; urgency=medium
+
+  * No-change upload to trigger a full rebuild
+
+ -- Matthias Klumpp <mak@debian.org>  Thu, 22 Dec 2022 23:54:36 +0100
+
+libxmlb (0.3.10-1) unstable; urgency=medium
+
+  * New upstream release: 0.3.10
+    - Resolves double-free corruption (Closes: #1019262)
+    - xb-tool has been moved to PATH
+    - Various other crash fixes
+  * Bump standards version: No changes needed
+  * Add new package for xb-tool, which is now in PATH
+
+ -- Matthias Klumpp <mak@debian.org>  Tue, 20 Dec 2022 18:16:38 +0100
+
+libxmlb (0.3.8-1) unstable; urgency=medium
+
+  * New upstream release: 0.3.8
+
+ -- Matthias Klumpp <mak@debian.org>  Sun, 10 Apr 2022 21:46:50 +0200
+
+libxmlb (0.3.6-2) unstable; urgency=medium
+
+  * Add dependency on liblzma-dev to dev package
+    - This fulfills the private pkgconf requirement on liblzma
+
+ -- Matthias Klumpp <mak@debian.org>  Thu, 16 Dec 2021 22:35:28 +0100
+
+libxmlb (0.3.6-1) unstable; urgency=medium
+
+  * New upstream bugfix release: 0.3.6
+
+ -- Matthias Klumpp <mak@debian.org>  Wed, 08 Dec 2021 14:42:14 +0100
+
+libxmlb (0.3.5-1) unstable; urgency=medium
+
+  * New upstream release: 0.3.5
+  * Bump standards version (no changes needed)
+  * Add build dependency on liblzma
+  * Update symbols file
+
+ -- Matthias Klumpp <mak@debian.org>  Thu, 02 Dec 2021 22:38:52 +0100
+
 libxmlb (0.3.2-1) unstable; urgency=medium
 
   [ Matthias Klumpp ]
