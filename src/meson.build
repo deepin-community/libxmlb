@@ -48,6 +48,7 @@ libxmlb = library(
     'xb-builder-source.c',
     'xb-builder-source-ctx.c',
     'xb-common.c',
+    'xb-lzma-decompressor.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -68,7 +69,7 @@ libxmlb = library(
     configinc,
   ],
   dependencies : libxmlb_deps,
-  link_args : vflag,
+  link_args : cc.get_supported_link_arguments([vflag]),
   link_depends : mapfile,
   install : true
 )
@@ -79,6 +80,7 @@ libxmlb_dep = declare_dependency(
   dependencies : libxmlb_deps
 )
 
+if get_option('cli')
 xb_tool = executable(
   'xb-tool',
   sources : [
@@ -94,8 +96,16 @@ xb_tool = executable(
     libxmlb,
   ],
   install : true,
-  install_dir : libexecdir
+  install_dir : bindir
 )
+configure_file(
+  input : 'xb-tool.1',
+  output : 'xb-tool.1',
+  configuration : conf,
+  install: true,
+  install_dir: join_paths(mandir, 'man1'),
+)
+endif
 
 pkgg = import('pkgconfig')
 pkgg.generate(libxmlb,
@@ -209,6 +219,7 @@ if get_option('tests')
       'xb-builder-source.c',
       'xb-builder-source-ctx.c',
       'xb-common.c',
+      'xb-lzma-decompressor.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-node-query.c',
