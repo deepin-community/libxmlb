@@ -39,6 +39,10 @@ subdir('libxmlb')
 
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+extra_sources = []
+if get_option('zstd')
+    extra_sources += ['xb-zstd-decompressor.c']
+endif
 libxmlb = library(
   'xmlb',
   sources : [
@@ -48,6 +52,7 @@ libxmlb = library(
     'xb-builder-source.c',
     'xb-builder-source-ctx.c',
     'xb-common.c',
+    'xb-lzma-decompressor.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -56,19 +61,19 @@ libxmlb = library(
     'xb-query-context.c',
     'xb-silo.c',
     'xb-silo-export.c',
-    'xb-silo-node.c',
     'xb-silo-query.c',
     'xb-stack.c',
     'xb-string.c',
     'xb-value-bindings.c',
-  ],
+  ] + extra_sources,
   soversion : lt_current,
   version : lt_version,
   include_directories : [
     configinc,
   ],
   dependencies : libxmlb_deps,
-  link_args : vflag,
+  c_args : release_args,
+  link_args : cc.get_supported_link_arguments([vflag]),
   link_depends : mapfile,
   install : true
 )
@@ -79,6 +84,7 @@ libxmlb_dep = declare_dependency(
   dependencies : libxmlb_deps
 )
 
+if get_option('cli')
 xb_tool = executable(
   'xb-tool',
   sources : [
@@ -94,8 +100,16 @@ xb_tool = executable(
     libxmlb,
   ],
   install : true,
-  install_dir : libexecdir
+  install_dir : bindir
 )
+configure_file(
+  input : 'xb-tool.1',
+  output : 'xb-tool.1',
+  configuration : conf,
+  install: true,
+  install_dir: join_paths(mandir, 'man1'),
+)
+endif
 
 pkgg = import('pkgconfig')
 pkgg.generate(libxmlb,
@@ -197,7 +211,7 @@ endif
 
 if get_option('tests')
   testdatadirs = environment()
-  testdatadirs.set('G_TEST_SRCDIR', join_paths(meson.source_root(), 'data'))
+  testdatadirs.set('G_TEST_SRCDIR', join_paths(meson.project_source_root(), 'data'))
   testdatadirs.set('G_TEST_BUILDDIR', meson.current_build_dir())
   e = executable(
     'xb-self-test',
@@ -209,6 +223,7 @@ if get_option('tests')
       'xb-builder-source.c',
       'xb-builder-source-ctx.c',
       'xb-common.c',
+      'xb-lzma-decompressor.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-node-query.c',
@@ -218,18 +233,20 @@ if get_option('tests')
       'xb-query-context.c',
       'xb-silo.c',
       'xb-silo-export.c',
-      'xb-silo-node.c',
       'xb-silo-query.c',
       'xb-stack.c',
       'xb-string.c',
       'xb-value-bindings.c',
-    ],
+    ] + extra_sources,
     include_directories : [
       configinc,
     ],
     dependencies : [
       gio,
       libxmlb_dep,
+    ],
+    c_args: [
+      '-DSRCDIR="' + join_paths(meson.project_source_root(), 'data') + '"',
     ],
     install : true,
     install_dir : installed_test_bindir

@@ -8,42 +8,41 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#define G_LOG_DOMAIN				"XbValueBindings"
+#define G_LOG_DOMAIN "XbValueBindings"
 
 #include "config.h"
 
 #include <glib.h>
 
 #include "xb-opcode-private.h"
-#include "xb-value-bindings.h"
+#include "xb-silo-private.h"
+#include "xb-value-bindings-private.h"
 
 typedef struct {
-	enum {
-		KIND_NONE,
-		KIND_TEXT,
-		KIND_INTEGER,
-	} kind;
-	union {
-		gchar *text;
-		guint32 integer;
-	};
+	guint8 kind; /* XbBoundValueKind */
+	guint32 val;
+	gpointer ptr;
 	GDestroyNotify destroy_func;
-} BoundValue;
+} XbBoundValue;
+
+typedef enum {
+	XB_BOUND_VALUE_KIND_NONE,
+	XB_BOUND_VALUE_KIND_TEXT,
+	XB_BOUND_VALUE_KIND_INTEGER,
+	XB_BOUND_VALUE_KIND_INDEXED_TEXT,
+} XbBoundValueKind;
 
 typedef struct {
 	/* Currently limited to 4 values since that’s all that any client
 	 * uses. This could be expanded to dynamically allow more in future. */
-	BoundValue values[4];
+	XbBoundValue values[4];
 	gpointer dummy[3];
 } RealValueBindings;
 
-G_STATIC_ASSERT (sizeof (XbValueBindings) == sizeof (RealValueBindings));
-#if GLIB_CHECK_VERSION(2, 60, 0)
-G_STATIC_ASSERT (G_ALIGNOF (XbValueBindings) == G_ALIGNOF (RealValueBindings));
-#endif
-
-G_DEFINE_BOXED_TYPE (XbValueBindings, xb_value_bindings,
-		     xb_value_bindings_copy, xb_value_bindings_free)
+G_DEFINE_BOXED_TYPE(XbValueBindings,
+		    xb_value_bindings,
+		    xb_value_bindings_copy,
+		    xb_value_bindings_free)
 
 /**
  * xb_value_bindings_init:
@@ -58,25 +57,25 @@ G_DEFINE_BOXED_TYPE (XbValueBindings, xb_value_bindings,
  * Since: 0.3.0
  */
 void
-xb_value_bindings_init (XbValueBindings *self)
+xb_value_bindings_init(XbValueBindings *self)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	for (gsize i = 0; i < G_N_ELEMENTS (_self->values); i++)
-		_self->values[i].kind = KIND_NONE;
+	for (gsize i = 0; i < G_N_ELEMENTS(_self->values); i++)
+		_self->values[i].kind = XB_BOUND_VALUE_KIND_NONE;
 }
 
 static void
-xb_value_bindings_clear_index (XbValueBindings *self, guint idx)
+xb_value_bindings_clear_index(XbValueBindings *self, guint idx)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	g_return_if_fail (idx < G_N_ELEMENTS (_self->values));
+	g_return_if_fail(idx < G_N_ELEMENTS(_self->values));
 
-	if (_self->values[idx].kind == KIND_TEXT && _self->values[idx].destroy_func)
-		_self->values[idx].destroy_func (_self->values[idx].text);
-	_self->values[idx].kind = KIND_NONE;
-	_self->values[idx].text = NULL;
+	if (_self->values[idx].ptr != NULL && _self->values[idx].destroy_func)
+		_self->values[idx].destroy_func(_self->values[idx].ptr);
+	_self->values[idx].kind = XB_BOUND_VALUE_KIND_NONE;
+	_self->values[idx].ptr = NULL;
 	_self->values[idx].destroy_func = NULL;
 }
 
@@ -92,12 +91,39 @@ xb_value_bindings_clear_index (XbValueBindings *self, guint idx)
  * Since: 0.3.0
  */
 void
-xb_value_bindings_clear (XbValueBindings *self)
+xb_value_bindings_clear(XbValueBindings *self)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	for (gsize i = 0; i < G_N_ELEMENTS (_self->values); i++)
-		xb_value_bindings_clear_index (self, i);
+	for (gsize i = 0; i < G_N_ELEMENTS(_self->values); i++)
+		xb_value_bindings_clear_index(self, i);
+}
+
+/* private */
+gchar *
+xb_value_bindings_to_string(XbValueBindings *self)
+{
+	RealValueBindings *_self = (RealValueBindings *)self;
+	g_autoptr(GString) str = g_string_new("");
+
+	for (guint i = 0; i < G_N_ELEMENTS(_self->values); i++) {
+		XbBoundValue *value = &_self->values[i];
+		if (value->kind == XB_BOUND_VALUE_KIND_NONE)
+			continue;
+		if (str->len > 0)
+			g_string_append(str, ", ");
+		if (value->kind == XB_BOUND_VALUE_KIND_INTEGER)
+			g_string_append_printf(str, "?%u → %u", i, value->val);
+		else if (value->kind == XB_BOUND_VALUE_KIND_TEXT && value->val > 0)
+			g_string_append_printf(str,
+					       "?%u → %s [%u]",
+					       i,
+					       (const gchar *)value->ptr,
+					       value->val);
+		else if (value->kind == XB_BOUND_VALUE_KIND_TEXT)
+			g_string_append_printf(str, "?%u → %s", i, (const gchar *)value->ptr);
+	}
+	return g_string_free(g_steal_pointer(&str), FALSE);
 }
 
 /**
@@ -110,19 +136,19 @@ xb_value_bindings_clear (XbValueBindings *self)
  * Since: 0.3.0
  */
 XbValueBindings *
-xb_value_bindings_copy (XbValueBindings *self)
+xb_value_bindings_copy(XbValueBindings *self)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
-	g_autoptr(XbValueBindings) copy = g_new0 (XbValueBindings, 1);
+	RealValueBindings *_self = (RealValueBindings *)self;
+	g_autoptr(XbValueBindings) copy = g_new0(XbValueBindings, 1);
 
-	xb_value_bindings_init (copy);
+	xb_value_bindings_init(copy);
 
-	for (gsize i = 0; i < G_N_ELEMENTS (_self->values); i++) {
-		gboolean copied = xb_value_bindings_copy_binding (self, i, copy, i);
-		g_assert (copied);
+	for (gsize i = 0; i < G_N_ELEMENTS(_self->values); i++) {
+		gboolean copied = xb_value_bindings_copy_binding(self, i, copy, i);
+		g_assert(copied);
 	}
 
-	return g_steal_pointer (&copy);
+	return g_steal_pointer(&copy);
 }
 
 /**
@@ -138,12 +164,12 @@ xb_value_bindings_copy (XbValueBindings *self)
  * Since: 0.3.0
  */
 void
-xb_value_bindings_free (XbValueBindings *self)
+xb_value_bindings_free(XbValueBindings *self)
 {
-	g_return_if_fail (self != NULL);
+	g_return_if_fail(self != NULL);
 
-	xb_value_bindings_clear (self);
-	g_free (self);
+	xb_value_bindings_clear(self);
+	g_free(self);
 }
 
 /**
@@ -158,11 +184,12 @@ xb_value_bindings_free (XbValueBindings *self)
  * Since: 0.3.0
  */
 gboolean
-xb_value_bindings_is_bound (XbValueBindings *self, guint idx)
+xb_value_bindings_is_bound(XbValueBindings *self, guint idx)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	return (idx < G_N_ELEMENTS (_self->values) && _self->values[idx].kind != KIND_NONE);
+	return (idx < G_N_ELEMENTS(_self->values) &&
+		_self->values[idx].kind != XB_BOUND_VALUE_KIND_NONE);
 }
 
 /**
@@ -182,21 +209,24 @@ xb_value_bindings_is_bound (XbValueBindings *self, guint idx)
  * Since: 0.3.0
  */
 void
-xb_value_bindings_bind_str (XbValueBindings *self, guint idx, const gchar *str, GDestroyNotify destroy_func)
+xb_value_bindings_bind_str(XbValueBindings *self,
+			   guint idx,
+			   const gchar *str,
+			   GDestroyNotify destroy_func)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	g_return_if_fail (self != NULL);
-	g_return_if_fail (str != NULL);
+	g_return_if_fail(self != NULL);
+	g_return_if_fail(str != NULL);
 
 	/* Currently limited to two values, but this restriction could be lifted
 	 * in future. */
-	g_return_if_fail (idx < G_N_ELEMENTS (_self->values));
+	g_return_if_fail(idx < G_N_ELEMENTS(_self->values));
 
-	xb_value_bindings_clear_index (self, idx);
+	xb_value_bindings_clear_index(self, idx);
 
-	_self->values[idx].kind = KIND_TEXT;
-	_self->values[idx].text = (gchar *) str;
+	_self->values[idx].kind = XB_BOUND_VALUE_KIND_TEXT;
+	_self->values[idx].ptr = (gpointer)str;
 	_self->values[idx].destroy_func = destroy_func;
 }
 
@@ -213,20 +243,20 @@ xb_value_bindings_bind_str (XbValueBindings *self, guint idx, const gchar *str, 
  * Since: 0.3.0
  */
 void
-xb_value_bindings_bind_val (XbValueBindings *self, guint idx, guint32 val)
+xb_value_bindings_bind_val(XbValueBindings *self, guint idx, guint32 val)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	g_return_if_fail (self != NULL);
+	g_return_if_fail(self != NULL);
 
 	/* Currently limited to two values, but this restriction could be lifted
 	 * in future. */
-	g_return_if_fail (idx < G_N_ELEMENTS (_self->values));
+	g_return_if_fail(idx < G_N_ELEMENTS(_self->values));
 
-	xb_value_bindings_clear_index (self, idx);
+	xb_value_bindings_clear_index(self, idx);
 
-	_self->values[idx].kind = KIND_INTEGER;
-	_self->values[idx].integer = val;
+	_self->values[idx].kind = XB_BOUND_VALUE_KIND_INTEGER;
+	_self->values[idx].val = val;
 	_self->values[idx].destroy_func = NULL;
 }
 
@@ -248,25 +278,38 @@ xb_value_bindings_bind_val (XbValueBindings *self, guint idx, guint32 val)
  * Since: 0.3.0
  */
 gboolean
-xb_value_bindings_lookup_opcode (XbValueBindings *self, guint idx, XbOpcode *opcode_out)
+xb_value_bindings_lookup_opcode(XbValueBindings *self, guint idx, XbOpcode *opcode_out)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
 
-	if (!xb_value_bindings_is_bound (self, idx))
+	if (!xb_value_bindings_is_bound(self, idx))
 		return FALSE;
 
 	switch (_self->values[idx].kind) {
-	case KIND_TEXT:
-		xb_opcode_init (opcode_out, XB_OPCODE_KIND_BOUND_TEXT,
-				_self->values[idx].text, 0, NULL);
+	case XB_BOUND_VALUE_KIND_TEXT:
+		xb_opcode_init(opcode_out,
+			       XB_OPCODE_KIND_BOUND_TEXT,
+			       _self->values[idx].ptr,
+			       0,
+			       NULL);
 		break;
-	case KIND_INTEGER:
-		xb_opcode_init (opcode_out, XB_OPCODE_KIND_BOUND_INTEGER, NULL,
-				_self->values[idx].integer, NULL);
+	case XB_BOUND_VALUE_KIND_INTEGER:
+		xb_opcode_init(opcode_out,
+			       XB_OPCODE_KIND_BOUND_INTEGER,
+			       NULL,
+			       _self->values[idx].val,
+			       NULL);
 		break;
-	case KIND_NONE:
+	case XB_BOUND_VALUE_KIND_INDEXED_TEXT:
+		xb_opcode_init(opcode_out,
+			       XB_OPCODE_KIND_BOUND_INDEXED_TEXT,
+			       _self->values[idx].ptr,
+			       _self->values[idx].val,
+			       NULL);
+		break;
+	case XB_BOUND_VALUE_KIND_NONE:
 	default:
-		g_assert_not_reached ();
+		g_assert_not_reached();
 	}
 
 	return TRUE;
@@ -289,24 +332,57 @@ xb_value_bindings_lookup_opcode (XbValueBindings *self, guint idx, XbOpcode *opc
  * Since: 0.3.0
  */
 gboolean
-xb_value_bindings_copy_binding (XbValueBindings *self, guint idx, XbValueBindings *dest, guint dest_idx)
+xb_value_bindings_copy_binding(XbValueBindings *self,
+			       guint idx,
+			       XbValueBindings *dest,
+			       guint dest_idx)
 {
-	RealValueBindings *_self = (RealValueBindings *) self;
+	RealValueBindings *_self = (RealValueBindings *)self;
+	RealValueBindings *_dest = (RealValueBindings *)dest;
 
-	if (!xb_value_bindings_is_bound (self, idx))
+	if (!xb_value_bindings_is_bound(self, idx))
 		return FALSE;
 
 	switch (_self->values[idx].kind) {
-	case KIND_TEXT:
-		xb_value_bindings_bind_str (dest, dest_idx, _self->values[idx].text, NULL);
+	case XB_BOUND_VALUE_KIND_TEXT:
+		xb_value_bindings_bind_str(dest, dest_idx, _self->values[idx].ptr, NULL);
 		break;
-	case KIND_INTEGER:
-		xb_value_bindings_bind_val (dest, dest_idx, _self->values[idx].integer);
+	case XB_BOUND_VALUE_KIND_INTEGER:
+		xb_value_bindings_bind_val(dest, dest_idx, _self->values[idx].val);
 		break;
-	case KIND_NONE:
+	case XB_BOUND_VALUE_KIND_INDEXED_TEXT:
+		xb_value_bindings_bind_str(dest, dest_idx, _self->values[idx].ptr, NULL);
+		_dest->values[idx].kind = XB_BOUND_VALUE_KIND_INDEXED_TEXT;
+		_dest->values[idx].val = _self->values[idx].val;
+		break;
+	case XB_BOUND_VALUE_KIND_NONE:
 	default:
-		g_assert_not_reached ();
+		g_assert_not_reached();
 	}
 
+	return TRUE;
+}
+
+/* private */
+gboolean
+xb_value_bindings_indexed_text_lookup(XbValueBindings *self, XbSilo *silo, GError **error)
+{
+	RealValueBindings *_self = (RealValueBindings *)self;
+	for (guint i = 0; i < G_N_ELEMENTS(_self->values); i++) {
+		XbBoundValue *value = &_self->values[i];
+		if (value->kind == XB_BOUND_VALUE_KIND_TEXT) {
+			guint32 val = xb_silo_strtab_index_lookup(silo, (const gchar *)value->ptr);
+			if (val == XB_SILO_UNSET) {
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_ARGUMENT,
+					    "indexed string '%s' was unfound",
+					    (const gchar *)value->ptr);
+				return FALSE;
+			}
+			value->kind = XB_BOUND_VALUE_KIND_INDEXED_TEXT;
+			value->val = val;
+		}
+	}
 	return TRUE;
 }
