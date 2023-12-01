@@ -1,3 +1,118 @@
+Version 0.3.14
+~~~~~~~~~~~~~~
+Released: 2023-10-24
+
+Bugfixes:
+ - Fix comparing indexed text with integer values (Richard Hughes)
+
+Version 0.3.13
+~~~~~~~~~~~~~~
+Released: 2023-10-17
+
+Bugfixes:
+ - Correctly tokenize when using a bound text value (Richard Hughes)
+ - Ensure tokens are all NULL when using xb_opcode_init() (Richard Hughes)
+
+Version 0.3.12
+~~~~~~~~~~~~~~
+Released: 2023-10-10
+
+New Features:
+ - Use indexes when binding value (Richard Hughes)
+
+Bugfixes:
+ - Avoid building errors and debug strings when possible to make XbQuery faster (Christian Hergert)
+ - Fix content type detection on macOS (Richard Hughes)
+ - Inline a number of machine internals to make queries faster (Christian Hergert)
+ - Make zstd support optional (sulincix, aliriza)
+ - Setup various release build options (Christian Hergert)
+
+Version 0.3.11
+~~~~~~~~~~~~~~
+Released: 2023-02-20
+
+New Features:
+ - Add limited support for XPath 1.0 'in' (Richard Hughes)
+ - Add support for zstd (Richard Hughes)
+
+Bugfixes:
+ - Do not assert() when decompressing invalid LZMA (Richard Hughes)
+
+Version 0.3.10
+~~~~~~~~~~~~~~
+Released: 2022-09-11
+
+Bugfixes:
+ - Fix dumping and exporting multiple files from the CLI (Richard Hughes)
+ - Watch files before loading them into the builder (Philip Withnall)
+ - Fix potential double free when filtering by language (Sergio Costas Rodriguez)
+
+Version 0.3.9
+~~~~~~~~~~~~~
+Released: 2022-05-24
+
+Bugfixes:
+ - Fix the crash for when the root tree has no children (Richard Hughes)
+ - Fix the crash when getting the element for the [empty] root (Richard Hughes)
+ - Install xb-tool into bindir (Richard Hughes)
+
+Version 0.3.8
+~~~~~~~~~~~~~
+Released: 2022-03-22
+
+Bugfixes:
+ - Fix building on macOS (Bobby Rong)
+
+Version 0.3.7
+~~~~~~~~~~~~~
+Released: 2022-02-16
+
+Bugfixes:
+ - Ensure reproducible results when importing a node (Richard Hughes)
+ - Ignore all hidden files when using _WATCH_DIRECTORY (Richard Hughes)
+ - Show the value bindings when using XB_SILO_PROFILE_FLAG_XPATH (Richard Hughes)
+ - Use the correct lookup method for the python3 script interpreter (Eli Schwartz)
+
+Version 0.3.6
+~~~~~~~~~~~~~
+Released: 2021-12-06
+
+Bugfixes:
+ - Ensure _IS_TOKENIZED is set if tokens are added manually (Richard Hughes)
+ - Ensure we never add too many tokens to the silo (Richard Hughes)
+
+Version 0.3.5
+~~~~~~~~~~~~~
+Released: 2021-12-01
+
+Bugfixes:
+ - Put tail after the node when exporting XbBuilderNode (Matthias Klumpp)
+ - Remove the G_ALIGNOF checks to fix compile with old GLib versions (Richard Hughes)
+
+Version 0.3.4
+~~~~~~~~~~~~~
+Released: 2021-11-29
+
+New Features:
+ - Add a flag to require the XbBuilderSource to have no siblings (Richard Hughes)
+ - Add iterator for XbNode attributes and children (Matthias Klumpp)
+ - Allow removing XbBuilderNode text (Richard Hughes)
+ - Allow stripping builder node inner text (Richard Hughes)
+ - Include records in the symbol export list (Richard Hughes)
+ - Use -Dcli=false to reduce the install size (Richard Hughes)
+
+Version 0.3.3
+~~~~~~~~~~~~~
+Released: 2021-10-06
+
+New Features:
+ - Add support for LZMA decompression (Richard Hughes)
+
+Bugfixes:
+ - Add locking for file monitors (Philip Withnall)
+ - Clarify GMainContext usage and signal emission (Philip Withnall)
+ - Modernise property declaration (Philip Withnall)
+
 Version 0.3.2
 ~~~~~~~~~~~~~
 Released: 2021-05-24

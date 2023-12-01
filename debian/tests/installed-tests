@@ -2,4 +2,5 @@
 
 set -e
 
+export G_TEST_SRCDIR=/usr/libexec/installed-tests/libxmlb/
 gnome-desktop-testing-runner libxmlb

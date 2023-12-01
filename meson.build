@@ -1,5 +1,5 @@
 project('libxmlb', 'c',
-  version : '0.3.2',
+  version : '0.3.14',
   license : 'LGPL-2.1+',
   meson_version : '>=0.47.0',
   default_options : ['warning_level=2', 'c_std=c99'],
@@ -25,7 +25,7 @@ lt_version = '@0@.@1@.@2@'.format(lt_current, lt_age, lt_revision)
 
 configinc = include_directories('.')
 
-# get suported warning flags
+# get supported warning flags
 warning_flags = [
   '-Wno-aggregate-return',
   '-Wunused',
@@ -88,10 +88,18 @@ endif
 # enable full RELRO where possible
 # FIXME: until https://github.com/mesonbuild/meson/issues/1140 is fixed
 global_link_args = []
+release_args = []
 test_link_args = [
   '-Wl,-z,relro',
   '-Wl,-z,now',
 ]
+if not get_option('debug')
+  release_args += ['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT']
+  test_link_args += [
+    '-Wl,-Bsymbolic',
+    '-fno-plt',
+  ]
+endif
 foreach link_arg: test_link_args
   if cc.has_link_argument(link_arg)
     global_link_args += link_arg
@@ -102,20 +110,30 @@ add_project_link_arguments(
   language: 'c'
 )
 
+prefix = get_option('prefix')
 if host_machine.system() == 'windows'
-  libexecdir = get_option('libexecdir')
+  bindir = get_option('bindir')
   installed_test_bindir = get_option('libexecdir')
   installed_test_datadir = get_option('datadir')
 else
-  prefix = get_option('prefix')
   datadir = join_paths(prefix, get_option('datadir'))
+  bindir = join_paths(prefix, get_option('bindir'))
   libexecdir = join_paths(prefix, get_option('libexecdir'))
   installed_test_bindir = join_paths(libexecdir, 'installed-tests', meson.project_name())
   installed_test_datadir = join_paths(datadir, 'installed-tests', meson.project_name())
 endif
+mandir = join_paths(prefix, get_option('mandir'))
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
+lzma = dependency('liblzma')
+zstd = dependency('libzstd', required: false)
+if get_option('zstd')
+    if not zstd.found() 
+        error('libzstd is missing, please install it to continue!')
+    endif
+        conf.set('HAVE_ZSTD', 1)
+endif
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
 endif
@@ -128,8 +146,11 @@ add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_58', language: 
 
 libxmlb_deps = [
   gio,
+  lzma
 ]
-
+if get_option('zstd')
+    libxmlb_deps += zstd
+endif
 # support stemming of search tokens
 if get_option('stemmer')
   cc = meson.get_compiler('c')
@@ -148,8 +169,7 @@ configure_file(
   configuration : conf
 )
 
-python = import('python')
-python3 = python.find_installation()
+python3 = find_program('python3')
 
 subdir('data')
 subdir('src')

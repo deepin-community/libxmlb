@@ -15,6 +15,8 @@ BuildRequires: gtk-doc
 BuildRequires: libstemmer-devel
 BuildRequires: meson
 BuildRequires: gobject-introspection-devel
+BuildRequires: xz-devel
+BuildRequires: libzstd-devel
 %if 0%{?rhel} == 7
 BuildRequires: python36-setuptools
 %else
@@ -70,7 +72,8 @@ Executable and data files for installed tests.
 %files
 %doc README.md
 %license LICENSE
-%{_libexecdir}/xb-tool
+%{_bindir}/xb-tool
+%{_mandir}/man1/xb-tool.1*
 %dir %{_libdir}/girepository-1.0
 %{_libdir}/girepository-1.0/Xmlb-2.0.typelib
 %{_libdir}/libxmlb.so.2*
@@ -88,7 +91,7 @@ Executable and data files for installed tests.
 %files tests
 %dir %{_libexecdir}/installed-tests/libxmlb
 %{_libexecdir}/installed-tests/libxmlb/xb-self-test
-%{_libexecdir}/installed-tests/libxmlb/test.xml.gz.gz.gz
+%{_libexecdir}/installed-tests/libxmlb/test.*
 %dir %{_datadir}/installed-tests/libxmlb
 %{_datadir}/installed-tests/libxmlb/libxmlb.test
 
