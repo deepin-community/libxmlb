@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2021 Richard Hughes <richard@hughsie.com>
+ * Copyright 2021 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
 
-#include <glib-object.h>
+#include "xb-compile.h"
 
 #define XB_SILO_UNSET 0xffffffff
 
@@ -19,12 +19,12 @@ typedef enum {
 typedef struct __attribute__((packed)) {
 	guint8 flags : 2;
 	guint8 attr_count : 6;
-	guint8 token_count;   /* ONLY when is_node */
-	guint32 element_name; /* ONLY when is_node: from strtab */
-	guint32 parent;	      /* ONLY when is_node: from 0 */
-	guint32 next;	      /* ONLY when is_node: from 0 */
-	guint32 text;	      /* ONLY when is_node: from strtab */
-	guint32 tail;	      /* ONLY when is_node: from strtab */
+	guint8 token_count;   /* ONLY when is_element */
+	guint32 element_name; /* ONLY when is_element: from strtab */
+	guint32 parent;	      /* ONLY when is_element: from 0 */
+	guint32 next;	      /* ONLY when is_element: from 0 */
+	guint32 text;	      /* ONLY when is_element: from strtab */
+	guint32 tail;	      /* ONLY when is_element: from strtab */
 			      /*
 			      guint32		attrs[attr_count];
 			      guint32		tokens[token_count];
@@ -35,6 +35,9 @@ typedef struct __attribute__((packed)) {
 	guint32 attr_name;  /* from strtab */
 	guint32 attr_value; /* from strtab */
 } XbSiloNodeAttr;
+
+gchar *
+xb_silo_node_to_string(const XbSiloNode *self) G_GNUC_NON_NULL(1);
 
 /* private */
 static inline gboolean

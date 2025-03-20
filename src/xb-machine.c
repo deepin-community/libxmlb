@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #define G_LOG_DOMAIN "XbMachine"
@@ -1069,12 +1069,13 @@ xb_machine_run_with_bindings(XbMachine *self,
 				if (error != NULL) {
 					g_autofree gchar *tmp1 = xb_stack_to_string(stack);
 					g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
-					g_set_error(error,
-						    G_IO_ERROR,
-						    G_IO_ERROR_INVALID_DATA,
-						    "opcode was not bound at runtime, stack:%s, opcodes:%s",
-						    tmp1,
-						    tmp2);
+					g_set_error(
+					    error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "opcode was not bound at runtime, stack:%s, opcodes:%s",
+					    tmp1,
+					    tmp2);
 				}
 				return FALSE;
 			}
@@ -1252,7 +1253,7 @@ xb_machine_stack_push(XbMachine *self, XbStack *stack, XbOpcode **opcode_out, GE
 {
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)) {
 		g_debug("pushing generic opcode");
 	}
 
@@ -1279,13 +1280,13 @@ xb_machine_stack_push_text(XbMachine *self, XbStack *stack, const gchar *str, GE
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	XbOpcode *opcode;
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %s", str);
 
 	if (!xb_stack_push(stack, &opcode, error))
 		return FALSE;
 	xb_opcode_text_init(opcode, str);
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		xb_machine_debug_show_stack(self, stack);
 
 	return TRUE;
@@ -1311,7 +1312,7 @@ xb_machine_stack_push_text_static(XbMachine *self, XbStack *stack, const gchar *
 	XbOpcode *opcode;
 
 	XbMachinePrivate *priv = GET_PRIVATE(self);
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %s", str);
 
 	if (!xb_stack_push(stack, &opcode, error))
@@ -1344,7 +1345,7 @@ xb_machine_stack_push_text_steal(XbMachine *self, XbStack *stack, gchar *str, GE
 	XbOpcode *opcode;
 	g_autofree gchar *str_stolen = g_steal_pointer(&str);
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %s", str_stolen);
 
 	if (!xb_stack_push(stack, &opcode, error))
@@ -1376,7 +1377,7 @@ xb_machine_stack_push_integer(XbMachine *self, XbStack *stack, guint32 val, GErr
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	XbOpcode *opcode;
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %u", val);
 
 	if (!xb_stack_push(stack, &opcode, error))
@@ -1490,8 +1491,9 @@ xb_machine_check_one_arg(XbStack *stack, OpcodeCheckFunc f, GError **error)
 				    G_IO_ERROR,
 				    G_IO_ERROR_NOT_SUPPORTED,
 				    "%s type not supported",
-				    (head != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head))
-						   : "(null)");
+				    (head != NULL)
+					? xb_opcode_kind_to_string(_xb_opcode_get_kind(head))
+					: "(null)");
 		}
 		return FALSE;
 	}
@@ -1512,14 +1514,15 @@ xb_machine_check_two_args(XbStack *stack, OpcodeCheckFunc f1, OpcodeCheckFunc f2
 	}
 	if (head1 == NULL || head2 == NULL || !f1(head1) || !f2(head2)) {
 		if (error != NULL) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_NOT_SUPPORTED,
-				    "%s:%s types not supported",
-				    (head1 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head1))
-						    : "(null)",
-				    (head2 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head2))
-						    : "(null)");
+			g_set_error(
+			    error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "%s:%s types not supported",
+			    (head1 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head1))
+					    : "(null)",
+			    (head2 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head2))
+					    : "(null)");
 		}
 		return FALSE;
 	}
@@ -1544,7 +1547,9 @@ xb_machine_func_and_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	return xb_stack_push_bool(stack, _xb_opcode_get_val(&op1) && _xb_opcode_get_val(&op2), error);
+	return xb_stack_push_bool(stack,
+				  _xb_opcode_get_val(&op1) && _xb_opcode_get_val(&op2),
+				  error);
 }
 
 static gboolean
@@ -1564,7 +1569,9 @@ xb_machine_func_or_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	return xb_stack_push_bool(stack, _xb_opcode_get_val(&op1) || _xb_opcode_get_val(&op2), error);
+	return xb_stack_push_bool(stack,
+				  _xb_opcode_get_val(&op1) || _xb_opcode_get_val(&op2),
+				  error);
 }
 
 static gboolean

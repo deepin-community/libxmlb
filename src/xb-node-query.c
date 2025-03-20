@@ -1,18 +1,17 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #define G_LOG_DOMAIN "XbNode"
-
-#include "xb-node-query.h"
 
 #include "config.h"
 
 #include <gio/gio.h>
 #include <glib.h>
 
+#include "xb-node-query.h"
 #include "xb-node-silo.h"
 #include "xb-silo-export-private.h"
 #include "xb-silo-query-private.h"
@@ -227,7 +226,6 @@ xb_node_query_first(XbNode *self, const gchar *xpath, GError **error)
 const gchar *
 xb_node_query_text(XbNode *self, const gchar *xpath, GError **error)
 {
-	const gchar *tmp;
 	XbSilo *silo;
 	g_autoptr(GPtrArray) results = NULL;
 	XbSiloNode *sn;
@@ -241,13 +239,11 @@ xb_node_query_text(XbNode *self, const gchar *xpath, GError **error)
 	if (results == NULL)
 		return NULL;
 	sn = g_ptr_array_index(results, 0);
-
-	tmp = xb_silo_get_node_text(silo, sn);
-	if (tmp == NULL) {
+	if (xb_silo_node_get_text_idx(sn) == XB_SILO_UNSET) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no text data");
 		return NULL;
 	}
-	return tmp;
+	return xb_silo_from_strtab(silo, xb_silo_node_get_text_idx(sn), error);
 }
 
 /**
@@ -291,7 +287,7 @@ xb_node_query_attr(XbNode *self, const gchar *xpath, const gchar *name, GError *
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no text data");
 		return NULL;
 	}
-	return xb_silo_from_strtab(silo, a->attr_value);
+	return xb_silo_from_strtab(silo, a->attr_value, error);
 }
 
 /**

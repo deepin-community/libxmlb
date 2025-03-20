@@ -1,11 +1,11 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*-
  * vi:set noexpandtab tabstop=8 shiftwidth=8:
  *
- * Copyright (C) 2020 Endless OS Foundation LLC
+ * Copyright 2020 Endless OS Foundation LLC
  *
  * Author: Philip Withnall <withnall@endlessm.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
@@ -53,34 +53,37 @@ xb_query_context_get_type(void);
  */
 #define XB_QUERY_CONTEXT_INIT()                                                                    \
 	{                                                                                          \
-		0, 0, XB_VALUE_BINDINGS_INIT(), { NULL, NULL, NULL, NULL, NULL }                   \
+		0, 0, XB_VALUE_BINDINGS_INIT(),                                                    \
+		{                                                                                  \
+			NULL, NULL, NULL, NULL, NULL                                               \
+		}                                                                                  \
 	}
 
 void
-xb_query_context_init(XbQueryContext *self);
+xb_query_context_init(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_clear(XbQueryContext *self);
+xb_query_context_clear(XbQueryContext *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbQueryContext, xb_query_context_clear)
 
 XbQueryContext *
-xb_query_context_copy(XbQueryContext *self);
+xb_query_context_copy(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_free(XbQueryContext *self);
+xb_query_context_free(XbQueryContext *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbQueryContext, xb_query_context_free)
 
 XbValueBindings *
-xb_query_context_get_bindings(XbQueryContext *self);
+xb_query_context_get_bindings(XbQueryContext *self) G_GNUC_NON_NULL(1);
 
 guint
-xb_query_context_get_limit(XbQueryContext *self);
+xb_query_context_get_limit(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_set_limit(XbQueryContext *self, guint limit);
+xb_query_context_set_limit(XbQueryContext *self, guint limit) G_GNUC_NON_NULL(1);
 
 XbQueryFlags
-xb_query_context_get_flags(XbQueryContext *self);
+xb_query_context_get_flags(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_set_flags(XbQueryContext *self, XbQueryFlags flags);
+xb_query_context_set_flags(XbQueryContext *self, XbQueryFlags flags) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

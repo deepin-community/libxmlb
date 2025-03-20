@@ -1,15 +1,15 @@
 /*
- * Copyright (C) 2022 Richard Hughes <richard@hughsie.com>
+ * Copyright 2022 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
-
-#include "xb-zstd-decompressor.h"
 
 #include "config.h"
 
 #include <gio/gio.h>
 #include <zstd.h>
+
+#include "xb-zstd-decompressor.h"
 
 static void
 xb_zstd_decompressor_iface_init(GConverterIface *iface);
@@ -90,8 +90,6 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	size_t res;
 
 	res = ZSTD_decompressStream(self->zstdstream, &output, &input);
-	if (res == 0)
-		return G_CONVERTER_FINISHED;
 	if (ZSTD_isError(res)) {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -102,7 +100,9 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	}
 	*bytes_read = input.pos;
 	*bytes_written = output.pos;
-	return G_CONVERTER_CONVERTED;
+
+	/* success */
+	return res == 0 ? G_CONVERTER_FINISHED : G_CONVERTER_CONVERTED;
 }
 
 static void

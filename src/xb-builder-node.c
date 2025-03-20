@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #define G_LOG_DOMAIN "XbSilo"
@@ -279,9 +279,6 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 	tmp = g_string_sized_new((gsize)text_len_safe + 1);
 	split = g_strsplit(text, "\n", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
-		/* remove leading and trailing whitespace */
-		g_strstrip(split[i]);
-
 		/* if this is a blank line we end the paragraph mode
 		 * and swallow the newline. If we see exactly two
 		 * newlines in sequence then do a paragraph break */
@@ -1120,32 +1117,37 @@ xb_builder_node_export_helper(XbBuilderNode *self,
 		g_string_append_printf(helper->xml, " %s=\"%s\"", key, val);
 	}
 
-	/* finish the opening tag and add any text if it exists */
-	if (priv->text != NULL) {
-		g_autofree gchar *text = xb_string_xml_escape(priv->text);
-		g_string_append(helper->xml, ">");
-		g_string_append(helper->xml, text);
+	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY && priv->text == NULL &&
+	    priv->children == NULL) {
+		g_string_append(helper->xml, " />");
 	} else {
-		g_string_append(helper->xml, ">");
-		if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
-			g_string_append(helper->xml, "\n");
-	}
+		/* finish the opening tag and add any text if it exists */
+		if (priv->text != NULL) {
+			g_autofree gchar *text = xb_string_xml_escape(priv->text);
+			g_string_append(helper->xml, ">");
+			g_string_append(helper->xml, text);
+		} else {
+			g_string_append(helper->xml, ">");
+			if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
+				g_string_append(helper->xml, "\n");
+		}
 
-	/* recurse deeper */
-	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
-		XbBuilderNode *child = g_ptr_array_index(priv->children, i);
-		helper->level++;
-		if (!xb_builder_node_export_helper(child, helper, error))
-			return FALSE;
-		helper->level--;
-	}
+		/* recurse deeper */
+		for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
+			XbBuilderNode *child = g_ptr_array_index(priv->children, i);
+			helper->level++;
+			if (!xb_builder_node_export_helper(child, helper, error))
+				return FALSE;
+			helper->level--;
+		}
 
-	/* add closing tag */
-	if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 && priv->text == NULL) {
-		for (guint i = 0; i < helper->level; i++)
-			g_string_append(helper->xml, "  ");
+		/* add closing tag */
+		if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 && priv->text == NULL) {
+			for (guint i = 0; i < helper->level; i++)
+				g_string_append(helper->xml, "  ");
+		}
+		g_string_append_printf(helper->xml, "</%s>", priv->element);
 	}
-	g_string_append_printf(helper->xml, "</%s>", priv->element);
 
 	/* add any tail if it exists */
 	if (priv->tail != NULL) {

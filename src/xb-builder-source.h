@@ -1,16 +1,15 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
 
-#include <gio/gio.h>
-
 #include "xb-builder-fixup.h"
 #include "xb-builder-node.h"
 #include "xb-builder-source-ctx.h"
+#include "xb-compile.h"
 
 G_BEGIN_DECLS
 
@@ -67,34 +66,34 @@ xb_builder_source_load_file(XbBuilderSource *self,
 			    GFile *file,
 			    XbBuilderSourceFlags flags,
 			    GCancellable *cancellable,
-			    GError **error);
+			    GError **error) G_GNUC_NON_NULL(1, 2);
 gboolean
 xb_builder_source_load_xml(XbBuilderSource *self,
 			   const gchar *xml,
 			   XbBuilderSourceFlags flags,
-			   GError **error);
+			   GError **error) G_GNUC_NON_NULL(1, 2);
 gboolean
 xb_builder_source_load_bytes(XbBuilderSource *self,
 			     GBytes *bytes,
 			     XbBuilderSourceFlags flags,
-			     GError **error);
+			     GError **error) G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_source_set_info(XbBuilderSource *self, XbBuilderNode *info);
+xb_builder_source_set_info(XbBuilderSource *self, XbBuilderNode *info) G_GNUC_NON_NULL(1);
 void
-xb_builder_source_set_prefix(XbBuilderSource *self, const gchar *prefix);
+xb_builder_source_set_prefix(XbBuilderSource *self, const gchar *prefix) G_GNUC_NON_NULL(1);
 void
-xb_builder_source_add_fixup(XbBuilderSource *self, XbBuilderFixup *fixup);
+xb_builder_source_add_fixup(XbBuilderSource *self, XbBuilderFixup *fixup) G_GNUC_NON_NULL(1, 2);
 void
 xb_builder_source_add_adapter(XbBuilderSource *self,
 			      const gchar *content_types,
 			      XbBuilderSourceAdapterFunc func,
 			      gpointer user_data,
-			      GDestroyNotify user_data_free);
+			      GDestroyNotify user_data_free) G_GNUC_NON_NULL(1, 2, 3);
 void
 xb_builder_source_add_simple_adapter(XbBuilderSource *self,
 				     const gchar *content_types,
 				     XbBuilderSourceAdapterFunc func,
 				     gpointer user_data,
-				     GDestroyNotify user_data_free);
+				     GDestroyNotify user_data_free) G_GNUC_NON_NULL(1, 2, 3);
 
 G_END_DECLS
