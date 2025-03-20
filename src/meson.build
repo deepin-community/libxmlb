@@ -15,6 +15,7 @@ xb_headers = files(
   'xb-builder-node.h',
   'xb-builder-source.h',
   'xb-builder-source-ctx.h',
+  'xb-compile.h',
   'xb-machine.h',
   'xb-node.h',
   'xb-node-query.h',
@@ -40,9 +41,26 @@ subdir('libxmlb')
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
 extra_sources = []
-if get_option('zstd')
-    extra_sources += ['xb-zstd-decompressor.c']
+if zstd.found()
+  extra_sources += ['xb-zstd-decompressor.c']
 endif
+if lzma.found()
+  extra_sources += ['xb-lzma-decompressor.c']
+endif
+
+def_file_target = custom_target(
+  'libxmlb-defile',
+  input: mapfile,
+  output: 'libxmlb.def',
+  command: [
+    python3,
+    join_paths(meson.current_source_dir(), 'gen-def-from-map.py'),
+    '@INPUT@',
+    'LIBXMLB',
+    '@OUTPUT@',
+  ],
+)
+
 libxmlb = library(
   'xmlb',
   sources : [
@@ -52,7 +70,6 @@ libxmlb = library(
     'xb-builder-source.c',
     'xb-builder-source-ctx.c',
     'xb-common.c',
-    'xb-lzma-decompressor.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -61,10 +78,12 @@ libxmlb = library(
     'xb-query-context.c',
     'xb-silo.c',
     'xb-silo-export.c',
+    'xb-silo-node.c',
     'xb-silo-query.c',
     'xb-stack.c',
     'xb-string.c',
     'xb-value-bindings.c',
+    'xb-version.c',
   ] + extra_sources,
   soversion : lt_current,
   version : lt_version,
@@ -74,6 +93,7 @@ libxmlb = library(
   dependencies : libxmlb_deps,
   c_args : release_args,
   link_args : cc.get_supported_link_arguments([vflag]),
+  vs_module_defs: def_file_target,
   link_depends : mapfile,
   install : true
 )
@@ -81,7 +101,11 @@ libxmlb = library(
 libxmlb_dep = declare_dependency(
   link_with : libxmlb,
   include_directories : include_directories('.'),
-  dependencies : libxmlb_deps
+  dependencies : libxmlb_deps,
+  variables : {
+    'lzma': '@0@'.format(lzma.found()),
+    'zstd': '@0@'.format(zstd.found()),
+  },
 )
 
 if get_option('cli')
@@ -119,6 +143,10 @@ pkgg.generate(libxmlb,
   name : 'libxmlb',
   filebase : 'xmlb',
   description : 'libxmlb is a library to create or query compressed XML files',
+  variables : {
+    'lzma': '@0@'.format(lzma.found()),
+    'zstd': '@0@'.format(zstd.found()),
+  },
 )
 
 if get_option('introspection')
@@ -160,10 +188,16 @@ if get_option('introspection')
       'xb-string.h',
       'xb-value-bindings.c',
       'xb-value-bindings.h',
+      'xb-version.c',
+      libxmlb_version_h,
     ],
     nsversion : '2.0',
     namespace : 'Xmlb',
-    symbol_prefix : 'xb',
+    symbol_prefix : [
+      'xb',
+      'xmlb',
+      'libxmlb',
+    ],
     identifier_prefix : 'Xb',
     export_packages : 'xmlb',
     header : 'xmlb.h',
@@ -223,7 +257,6 @@ if get_option('tests')
       'xb-builder-source.c',
       'xb-builder-source-ctx.c',
       'xb-common.c',
-      'xb-lzma-decompressor.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-node-query.c',
@@ -233,6 +266,7 @@ if get_option('tests')
       'xb-query-context.c',
       'xb-silo.c',
       'xb-silo-export.c',
+      'xb-silo-node.c',
       'xb-silo-query.c',
       'xb-stack.c',
       'xb-string.c',

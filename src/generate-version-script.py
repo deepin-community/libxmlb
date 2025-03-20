@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # pylint: disable=invalid-name,missing-docstring
 #
-# Copyright (C) 2017 Richard Hughes <richard@hughsie.com>
+# Copyright 2017 Richard Hughes <richard@hughsie.com>
 #
-# SPDX-License-Identifier: LGPL-2.1+
+# SPDX-License-Identifier: LGPL-2.1-or-later
 
 import sys
 import argparse
@@ -139,4 +139,4 @@ if __name__ == "__main__":
         for override_symbol, override_version in args.override:
             ld.overrides[override_symbol] = override_version
     ld.import_gir(argv[1])
-    open(argv[2], "w").write(ld.render())
+    open(argv[2], "w", newline="\n").write(ld.render())

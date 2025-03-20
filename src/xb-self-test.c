@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "config.h"
@@ -175,7 +175,7 @@ xb_common_content_type_func(void)
 		     {"test.xml", "application/xml"},
 		     {"test.xml.gz.gz.gz", "application/gzip"},
 		     {"test.xml.xz", "application/x-xz"},
-		     {"test.xml.zstd", "application/zstd"},
+		     {"test.xml.zst", "application/zstd"},
 		     {NULL, NULL}};
 	for (guint i = 0; items[i].fn != NULL; i++) {
 		gboolean ret;
@@ -408,7 +408,7 @@ xb_builder_func(void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes(silo);
-	g_assert_cmpint(g_bytes_get_size(bytes), ==, 620);
+	g_assert_cmpint(g_bytes_get_size(bytes), ==, 628);
 }
 
 static void
@@ -497,6 +497,12 @@ xb_builder_source_lzma_func(void)
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
 	g_autoptr(XbSilo) silo = NULL;
 
+#ifndef HAVE_LZMA
+	/* not supported */
+	g_test_skip("compiled without -Dlzma");
+	return;
+#endif
+
 	/* import a source file */
 	path = g_test_build_filename(G_TEST_DIST, "test.xml.xz", NULL);
 	file_src = g_file_new_for_path(path);
@@ -532,7 +538,7 @@ xb_builder_source_zstd_func(void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import a source file */
-	path = g_test_build_filename(G_TEST_DIST, "test.xml.zstd", NULL);
+	path = g_test_build_filename(G_TEST_DIST, "test.xml.zst", NULL);
 	file_src = g_file_new_for_path(path);
 	if (!g_file_query_exists(file_src, NULL)) {
 		g_test_skip("does not work in subproject test");
@@ -661,6 +667,9 @@ xb_builder_ensure_func(void)
 {
 	gboolean ret;
 	guint invalidate_cnt = 0;
+	g_autofree gchar *bytes1str = NULL;
+	g_autofree gchar *bytes2str = NULL;
+	g_autofree gchar *bytes3str = NULL;
 	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
 	g_autoptr(GBytes) bytes1 = NULL;
 	g_autoptr(GBytes) bytes2 = NULL;
@@ -713,6 +722,7 @@ xb_builder_ensure_func(void)
 			 &invalidate_cnt);
 	g_assert_cmpint(invalidate_cnt, ==, 0);
 	bytes1 = xb_silo_get_bytes(silo);
+	bytes1str = g_compute_checksum_for_bytes(G_CHECKSUM_SHA1, bytes1);
 
 	/* recreate file if it is invalid */
 	ret = g_file_replace_contents(file,
@@ -736,7 +746,8 @@ xb_builder_ensure_func(void)
 	g_assert_nonnull(silo);
 	g_assert_true(xb_silo_is_valid(silo));
 	bytes2 = xb_silo_get_bytes(silo);
-	g_assert(bytes1 != bytes2);
+	bytes2str = g_compute_checksum_for_bytes(G_CHECKSUM_SHA1, bytes2);
+	g_assert_cmpstr(bytes1str, !=, bytes2str);
 	g_clear_object(&silo);
 
 	/* don't recreate file if perfectly valid */
@@ -745,7 +756,8 @@ xb_builder_ensure_func(void)
 	g_assert_nonnull(silo);
 	g_assert_true(xb_silo_is_valid(silo));
 	bytes3 = xb_silo_get_bytes(silo);
-	g_assert(bytes2 == bytes3);
+	bytes3str = g_compute_checksum_for_bytes(G_CHECKSUM_SHA1, bytes3);
+	g_assert_cmpstr(bytes2str, ==, bytes3str);
 	g_clear_object(&silo);
 	g_clear_object(&builder);
 
@@ -921,7 +933,7 @@ xb_builder_fixup_ignore_node_cb(XbBuilderFixup *self,
 {
 	if (g_strcmp0(xb_builder_node_get_element(bn), "component") == 0) {
 		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child(bn, "id", NULL);
-		if (g_strcmp0(xb_builder_node_get_text(id), "gimp.desktop") == 0)
+		if (id != NULL && g_strcmp0(xb_builder_node_get_text(id), "gimp.desktop") == 0)
 			xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
 	} else {
 		g_debug("ignoring %s", xb_builder_node_get_element(bn));
@@ -1067,7 +1079,7 @@ xb_builder_empty_func(void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes(silo);
-	g_assert_cmpint(g_bytes_get_size(bytes), ==, 32);
+	g_assert_cmpint(g_bytes_get_size(bytes), ==, 40);
 
 	/* try to dump */
 	str = xb_silo_to_string(silo, &error);
@@ -1185,6 +1197,28 @@ xb_node_export_func(void)
 }
 
 static void
+xb_node_export_collapse_func(void)
+{
+	const gchar *xml = "<components><aaa /><bbb /></components>";
+	g_autofree gchar *xml_collapsed = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml(xml, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* export collapsed */
+	n = xb_silo_get_root(silo);
+	g_assert_nonnull(n);
+	xml_collapsed = xb_node_export(n, XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY, &error);
+	g_assert_no_error(error);
+	g_assert_cmpstr(xml_collapsed, ==, xml);
+}
+
+static void
 xb_xpath_parent_subnode_func(void)
 {
 	g_autofree gchar *xml2 = NULL;
@@ -1206,9 +1240,9 @@ xb_xpath_parent_subnode_func(void)
 
 	/* import from XML */
 	silo = xb_silo_new_from_xml(xml, &error);
-	xb_silo_set_enable_node_cache(silo, TRUE);
 	g_assert_no_error(error);
 	g_assert_nonnull(silo);
+	xb_silo_set_enable_node_cache(silo, TRUE);
 
 	/* get node */
 	n = xb_silo_query_first(silo, "components/component", &error);
@@ -2333,7 +2367,7 @@ xb_builder_node_func(void)
 	xb_builder_node_add_child(component, description);
 
 	/* no text contents */
-	empty = xb_builder_node_new("empty");
+	empty = xb_builder_node_insert(component, "empty", NULL);
 	xb_builder_node_set_text(empty, NULL, -1);
 	xb_builder_node_set_tail(empty, NULL, -1);
 
@@ -2346,7 +2380,10 @@ xb_builder_node_func(void)
 	g_assert_cmpstr(xb_builder_node_get_element(child_by_text), ==, "id");
 
 	/* check the source XML */
-	xml_src = xb_builder_node_export(components, XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE, &error);
+	xml_src = xb_builder_node_export(components,
+					 XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE |
+					     XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY,
+					 &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(xml_src);
 	g_print("%s", xml_src);
@@ -2356,6 +2393,7 @@ xb_builder_node_func(void)
 			"<icon type=\"stock\">dave</icon>\n"
 			"<description>hello <em>world!</em>    \n"
 			"</description>\n"
+			"<empty />\n"
 			"</component>\n"
 			"</components>\n",
 			==,
@@ -2367,7 +2405,10 @@ xb_builder_node_func(void)
 	g_assert_nonnull(silo);
 
 	/* check the XML */
-	xml = xb_silo_export(silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
+	xml = xb_silo_export(silo,
+			     XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS |
+				 XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY,
+			     &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(xml);
 	g_print("%s", xml);
@@ -2377,6 +2418,7 @@ xb_builder_node_func(void)
 			"<icon type=\"stock\">dave</icon>"
 			"<description>hello <em>world!</em>"
 			"</description>"
+			"<empty />"
 			"</component>"
 			"</components>",
 			==,
@@ -2892,6 +2934,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/stack{peek}", xb_stack_peek_func);
 	g_test_add_func("/libxmlb/node{data}", xb_node_data_func);
 	g_test_add_func("/libxmlb/node{export}", xb_node_export_func);
+	g_test_add_func("/libxmlb/node{export-collapse}", xb_node_export_collapse_func);
 	g_test_add_func("/libxmlb/builder", xb_builder_func);
 	g_test_add_func("/libxmlb/builder{comments}", xb_builder_comments_func);
 	g_test_add_func("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);

@@ -1,7 +1,7 @@
 project('libxmlb', 'c',
-  version : '0.3.14',
-  license : 'LGPL-2.1+',
-  meson_version : '>=0.47.0',
+  version : '0.3.22',
+  license : 'LGPL-2.1-or-later',
+  meson_version : '>=0.60.0',
   default_options : ['warning_level=2', 'c_std=c99'],
 )
 
@@ -27,6 +27,7 @@ configinc = include_directories('.')
 
 # get supported warning flags
 warning_flags = [
+  '-Wno-nonnull-compare',
   '-Wno-aggregate-return',
   '-Wunused',
   '-Warray-bounds',
@@ -85,6 +86,10 @@ if not meson.is_cross_build()
   add_project_arguments('-fstack-protector-strong', language : 'c')
 endif
 
+if cc.get_id() == 'msvc'
+  error('MSVC is not supported as it does not support __attribute__((cleanup))')
+endif
+
 # enable full RELRO where possible
 # FIXME: until https://github.com/mesonbuild/meson/issues/1140 is fixed
 global_link_args = []
@@ -126,13 +131,13 @@ mandir = join_paths(prefix, get_option('mandir'))
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
-lzma = dependency('liblzma')
-zstd = dependency('libzstd', required: false)
-if get_option('zstd')
-    if not zstd.found() 
-        error('libzstd is missing, please install it to continue!')
-    endif
-        conf.set('HAVE_ZSTD', 1)
+lzma = dependency('liblzma', required: get_option('lzma'))
+if lzma.found()
+  conf.set('HAVE_LZMA', 1)
+endif
+zstd = dependency('libzstd', required: get_option('zstd'))
+if zstd.found()
+  conf.set('HAVE_ZSTD', 1)
 endif
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
@@ -146,10 +151,12 @@ add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_58', language: 
 
 libxmlb_deps = [
   gio,
-  lzma
 ]
-if get_option('zstd')
-    libxmlb_deps += zstd
+if lzma.found()
+  libxmlb_deps += lzma
+endif
+if zstd.found()
+  libxmlb_deps += zstd
 endif
 # support stemming of search tokens
 if get_option('stemmer')

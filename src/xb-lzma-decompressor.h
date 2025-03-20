@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2009 Red Hat, Inc.
- * Copyright (C) 2009 Shaun McCance <shaunm@gnome.org>
- * Copyright (C) 2021 Richard Hughes <richard@hughsie.com>
+ * Copyright 2009 Red Hat, Inc.
+ * Copyright 2009 Shaun McCance <shaunm@gnome.org>
+ * Copyright 2021 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once

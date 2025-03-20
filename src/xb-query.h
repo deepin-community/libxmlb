@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
@@ -48,31 +48,32 @@ typedef enum {
 #include "xb-silo.h"
 
 XbQuery *
-xb_query_new(XbSilo *silo, const gchar *xpath, GError **error);
+xb_query_new(XbSilo *silo, const gchar *xpath, GError **error) G_GNUC_NON_NULL(1, 2);
 XbQuery *
-xb_query_new_full(XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError **error);
+xb_query_new_full(XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 const gchar *
-xb_query_get_xpath(XbQuery *self);
+xb_query_get_xpath(XbQuery *self) G_GNUC_NON_NULL(1);
 
 G_DEPRECATED_FOR(xb_query_context_get_limit)
 guint
-xb_query_get_limit(XbQuery *self);
+xb_query_get_limit(XbQuery *self) G_GNUC_NON_NULL(1);
 G_DEPRECATED_FOR(xb_query_context_set_limit)
 void
-xb_query_set_limit(XbQuery *self, guint limit);
+xb_query_set_limit(XbQuery *self, guint limit) G_GNUC_NON_NULL(1);
 
 G_DEPRECATED_FOR(xb_query_context_get_flags)
 XbQueryFlags
-xb_query_get_flags(XbQuery *self);
+xb_query_get_flags(XbQuery *self) G_GNUC_NON_NULL(1);
 G_DEPRECATED_FOR(xb_query_context_set_flags)
 void
-xb_query_set_flags(XbQuery *self, XbQueryFlags flags);
+xb_query_set_flags(XbQuery *self, XbQueryFlags flags) G_GNUC_NON_NULL(1);
 
 G_DEPRECATED_FOR(xb_value_bindings_bind_str)
 gboolean
-xb_query_bind_str(XbQuery *self, guint idx, const gchar *str, GError **error);
+xb_query_bind_str(XbQuery *self, guint idx, const gchar *str, GError **error) G_GNUC_NON_NULL(1);
 G_DEPRECATED_FOR(xb_value_bindings_bind_val)
 gboolean
-xb_query_bind_val(XbQuery *self, guint idx, guint32 val, GError **error);
+xb_query_bind_val(XbQuery *self, guint idx, guint32 val, GError **error) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

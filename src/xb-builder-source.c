@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #define G_LOG_DOMAIN "XbSilo"
@@ -14,7 +14,9 @@
 #include "xb-builder-fixup-private.h"
 #include "xb-builder-source-ctx-private.h"
 #include "xb-builder-source-private.h"
+#ifdef HAVE_LZMA
 #include "xb-lzma-decompressor.h"
+#endif
 #ifdef HAVE_ZSTD
 #include "xb-zstd-decompressor.h"
 #endif
@@ -437,6 +439,7 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 	g_autofree gchar *basename = NULL;
+	g_autoptr(GInputStream) istream = NULL;
 	GFile *file;
 
 	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), NULL);
@@ -446,8 +449,8 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		return g_object_ref(priv->istream);
 
 	/* convert the file to a GFileInputStream */
-	priv->istream = G_INPUT_STREAM(g_file_read(priv->file, cancellable, error));
-	if (priv->istream == NULL)
+	istream = G_INPUT_STREAM(g_file_read(priv->file, cancellable, error));
+	if (istream == NULL)
 		return NULL;
 
 	/* run the content type handlers until we get application/xml */
@@ -458,14 +461,19 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		XbBuilderSourceAdapter *item;
 		g_autofree gchar *content_type = NULL;
 		g_autoptr(GInputStream) istream_tmp = NULL;
-		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new(file, priv->istream);
+		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new(file, istream);
 
 		/* get the content type of the stream */
 		xb_builder_source_ctx_set_filename(ctx, basename);
 		content_type = xb_builder_source_ctx_get_content_type(ctx, cancellable, error);
+		g_debug("detected content type of %s to be %s", basename, content_type);
 		if (content_type == NULL)
 			return NULL;
 		if (g_strcmp0(content_type, "application/xml") == 0)
+			break;
+		/* Also accept the text/xml alias, just in case the user’s content-type database is
+		 * slightly broken (application/xml should normally be what’s used): */
+		if (g_strcmp0(content_type, "text/xml") == 0)
 			break;
 
 		/* convert the stream */
@@ -482,7 +490,7 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		if (istream_tmp == NULL)
 			return NULL;
 		xb_builder_source_remove_last_extension(basename);
-		g_set_object(&priv->istream, istream_tmp);
+		g_set_object(&istream, istream_tmp);
 
 		/* the #GFile is only useful for the outermost input stream,
 		 * for example it points to the .tar.gz file, while inner input
@@ -493,7 +501,7 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		if (item->is_simple)
 			break;
 	} while (TRUE);
-	return g_object_ref(priv->istream);
+	return g_steal_pointer(&istream);
 }
 
 GFile *
@@ -525,6 +533,7 @@ xb_builder_source_load_gzip_cb(XbBuilderSource *self,
 	return g_converter_input_stream_new(istream, conv);
 }
 
+#ifdef HAVE_LZMA
 static GInputStream *
 xb_builder_source_load_lzma_cb(XbBuilderSource *self,
 			       XbBuilderSourceCtx *ctx,
@@ -536,6 +545,8 @@ xb_builder_source_load_lzma_cb(XbBuilderSource *self,
 	g_autoptr(GConverter) conv = G_CONVERTER(xb_lzma_decompressor_new());
 	return g_converter_input_stream_new(istream, conv);
 }
+#endif
+
 #ifdef HAVE_ZSTD
 static GInputStream *
 xb_builder_source_load_zstd_cb(XbBuilderSource *self,
@@ -598,11 +609,13 @@ xb_builder_source_init(XbBuilderSource *self)
 				      xb_builder_source_load_gzip_cb,
 				      NULL,
 				      NULL);
+#ifdef HAVE_LZMA
 	xb_builder_source_add_adapter(self,
 				      "application/x-xz,org.tukaani.xz-archive",
 				      xb_builder_source_load_lzma_cb,
 				      NULL,
 				      NULL);
+#endif
 #ifdef HAVE_ZSTD
 	xb_builder_source_add_adapter(self,
 				      "application/zstd",

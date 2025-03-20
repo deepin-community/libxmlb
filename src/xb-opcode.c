@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ * Copyright 2018 Richard Hughes <richard@hughsie.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #define G_LOG_DOMAIN "XbMachine"
@@ -220,7 +220,7 @@ xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag)
  *
  * Since: 0.1.1
  **/
-inline gboolean
+gboolean
 xb_opcode_cmp_val(XbOpcode *self)
 {
 	return _xb_opcode_cmp_int(self) || _xb_opcode_cmp_itx(self);
@@ -236,7 +236,7 @@ xb_opcode_cmp_val(XbOpcode *self)
  *
  * Since: 0.1.1
  **/
-inline gboolean
+gboolean
 xb_opcode_cmp_str(XbOpcode *self)
 {
 	return xb_opcode_has_flag(self, XB_OPCODE_FLAG_TEXT);
@@ -279,7 +279,7 @@ xb_opcode_get_val(XbOpcode *self)
 const gchar *
 xb_opcode_get_str(XbOpcode *self)
 {
-  return _xb_opcode_get_str(self);
+	return _xb_opcode_get_str(self);
 }
 
 /**
