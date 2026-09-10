@@ -1,3 +1,9 @@
+libxmlb (0.3.22-2) unstable; urgency=medium
+
+  * Rebuild with LTO enabled (dpkg vendor feature optimize/lto).
+
+ -- tunaichao <tunaichao@uniontech.com>  Thu, 10 Sep 2026 19:16:25 +0800
+
 libxmlb (0.3.22-1) unstable; urgency=medium
 
   * New upstream version
